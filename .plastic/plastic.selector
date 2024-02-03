@@ -1,0 +1,4 @@
+repository "Chess_Prototype@SBarman@cloud"
+  path "/"
+    br "/main"
+    co "/main"
