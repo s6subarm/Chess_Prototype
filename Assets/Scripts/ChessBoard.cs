@@ -1,8 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using UnityEngine;
-using UnityEngine.UIElements;
+
 
 
 public class ChessBoard : MonoBehaviour
@@ -44,6 +42,7 @@ public class ChessBoard : MonoBehaviour
             return;
         }
 
+        // Update logic for highlighting tiles while hovering cursor
         Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
         float enter;
         if (chessboardPlane.Raycast(ray, out enter))
@@ -154,6 +153,50 @@ public class ChessBoard : MonoBehaviour
 
 
 
+
+    /*
+    // Basic multi-purpose fuctions 
+    */
+    private bool IsTileOccupied(Vector2Int position)
+    {
+        return chessPieces[position.x, position.y] != null;
+    }
+
+    private Vector3 GetTileCenter(int x, int y)
+    {
+        GameObject tile = tiles[x, y];
+        Vector3 center = tile.GetComponent<Renderer>().bounds.center;
+        return new Vector3(center.x, 0.5f, center.z); // Adjust the y-value as needed to raise the pieces off the tiles.
+    }
+
+    private void PlaceChessPiece(GameObject piecePrefab, int x, int y)
+    {
+        Vector3 position = GetTileCenter(x, y);
+        // Create a rotation that rotates the prefab -90 degrees on the X axis.
+        Quaternion rotation = Quaternion.Euler(-90, 0, 0);
+
+        GameObject newPiece = Instantiate(piecePrefab, position, rotation, transform); // Parent to the chessboard for a cleaner hierarchy
+        chessPieces[x, y] = newPiece; // Track the piece's position on the board
+    }
+
+    private Vector2Int GetPiecePosition(GameObject piece)
+    {
+        for (int x = 0; x < TILE_COUNT_X; x++)
+        {
+            for (int y = 0; y < TILE_COUNT_Y; y++)
+            {
+                if (chessPieces[x, y] == piece)
+                {
+                    return new Vector2Int(x, y);
+                }
+            }
+        }
+        return -Vector2Int.one; // Return an invalid position if not found
+    }
+
+
+
+
     /*
     // Highlighting tiles of the chess board
     */
@@ -167,8 +210,11 @@ public class ChessBoard : MonoBehaviour
 
     private void HighlightTile(Vector2Int index)
     {
+
+        // Change the material to the highlight material
         Renderer renderer = tiles[index.x, index.y].GetComponent<Renderer>();
-        renderer.material = highlightTileMaterial; // Change to highlight material
+        renderer.material = highlightTileMaterial;
+        
     }
 
     private void ResetHighlight()
@@ -215,28 +261,6 @@ public class ChessBoard : MonoBehaviour
         PlaceChessPiece(prefabQueen, x2, y2);
     }
 
-    private bool IsTileOccupied(Vector2Int position)
-    {
-        return chessPieces[position.x, position.y] != null;
-    }
-
-    private Vector3 GetTileCenter(int x, int y)
-    {
-        GameObject tile = tiles[x, y];
-        Vector3 center = tile.GetComponent<Renderer>().bounds.center;
-        return new Vector3(center.x, 0.5f, center.z); // Adjust the y-value as needed to raise the pieces off the tiles.
-    }
-
-    private void PlaceChessPiece(GameObject piecePrefab, int x, int y)
-    {
-        Vector3 position = GetTileCenter(x, y);
-        // Create a rotation that rotates the prefab -90 degrees on the X axis.
-        Quaternion rotation = Quaternion.Euler(-90, 0, 0);
-
-        GameObject newPiece = Instantiate(piecePrefab, position, rotation, transform); // Parent to the chessboard for a cleaner hierarchy
-        chessPieces[x, y] = newPiece; // Track the piece's position on the board
-    }
-
 
 
 
@@ -244,24 +268,10 @@ public class ChessBoard : MonoBehaviour
     // Valid Moves
     */
 
-    private Vector2Int GetPiecePosition(GameObject piece)
-    {
-        for (int x = 0; x < TILE_COUNT_X; x++)
-        {
-            for (int y = 0; y < TILE_COUNT_Y; y++)
-            {
-                if (chessPieces[x, y] == piece)
-                {
-                    return new Vector2Int(x, y);
-                }
-            }
-        }
-        return -Vector2Int.one; // Return an invalid position if not found
-    }
-
     private List<Vector2Int> GetValidMovesForKnight(Vector2Int position)
     {
         List<Vector2Int> moves = new List<Vector2Int>();
+        UnityEngine.Debug.Log("Knight position: " + position);
 
         // Knight's potential moves in "L" shapes
         int[,] offsets = new int[,] { { 1, 2 }, { 2, 1 }, { -1, 2 }, { -2, 1 }, { -1, -2 }, { -2, -1 }, { 1, -2 }, { 2, -1 } };
@@ -273,8 +283,14 @@ public class ChessBoard : MonoBehaviour
 
             if (newX >= 0 && newX < TILE_COUNT_X && newY >= 0 && newY < TILE_COUNT_Y)
             {
+                UnityEngine.Debug.Log("Valid move for knight: (" + newX + ", " + newY + ")");
                 moves.Add(new Vector2Int(newX, newY));
             }
+        }
+
+        if (moves.Count == 0)
+        {
+            UnityEngine.Debug.LogError("No valid moves found for knight at position: " + position);
         }
 
         return moves;
@@ -283,24 +299,24 @@ public class ChessBoard : MonoBehaviour
     private List<Vector2Int> GetValidMovesForQueen(Vector2Int position)
     {
         List<Vector2Int> moves = new List<Vector2Int>();
+        UnityEngine.Debug.Log("Queen position:" + position);
 
         Vector2Int[] directions = new Vector2Int[] {
         new Vector2Int(1, 0), new Vector2Int(-1, 0), // Horizontal
         new Vector2Int(0, 1), new Vector2Int(0, -1), // Vertical
         new Vector2Int(1, 1), new Vector2Int(-1, -1), // Diagonal
         new Vector2Int(-1, 1), new Vector2Int(1, -1)  // Diagonal
-    };
+        };
 
         foreach (var dir in directions)
         {
             Vector2Int nextPosition = position + dir;
+
             while (nextPosition.x >= 0 && nextPosition.x < TILE_COUNT_X && nextPosition.y >= 0 && nextPosition.y < TILE_COUNT_Y)
             {
                 if (IsTileOccupied(nextPosition))
                 {
-                    // Include this tile as a valid move if it's occupied by an enemy piece
-                    // This simplification assumes any occupied tile is valid (capture) for demonstration
-                    // You might need additional logic to differentiate between ally and enemy pieces
+                    // TODO: Add additional logic to differentiate between ally and enemy pieces
                     moves.Add(nextPosition);
                     break; // Stop at the first occupied tile
                 }
@@ -311,9 +327,21 @@ public class ChessBoard : MonoBehaviour
             }
         }
 
+        if (moves.Count == 0)
+        {
+            UnityEngine.Debug.LogError("No valid moves found for Queen at position: " + position);
+        }
+        else
+        {
+            foreach (var move in moves)
+            {
+                UnityEngine.Debug.Log("Valid move for Queen: (" + move.x + ", " + move.y + ")");
+            }
+        }
+
+
         return moves;
     }
-
 
     private void ShowValidMoves()
     {
@@ -323,7 +351,7 @@ public class ChessBoard : MonoBehaviour
 
         // Assuming each piece has a tag that is either "Knight" or "Queen"
         Vector2Int selectedPiecePosition = GetPiecePosition(selectedPiece);
-        UnityEngine.Debug.Log("Selected piece position after sending it to LookupTileIndex:" + selectedPiecePosition);
+        //UnityEngine.Debug.Log("Selected piece position after sending it to LookupTileIndex:" + selectedPiecePosition);
 
         if (selectedPiece.CompareTag("Knight"))
         {

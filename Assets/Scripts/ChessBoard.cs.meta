@@ -3,7 +3,12 @@ guid: d89200130e65874488811b252572e55d
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - whiteTileMaterial: {fileID: 2100000, guid: 6c15014465f47fa4a8a26f89d5221cb3, type: 2}
+  - blackTileMaterial: {fileID: 2100000, guid: 59d94c76ffb745d43932702efa9cc026, type: 2}
+  - highlightTileMaterial: {fileID: 2100000, guid: d06e434b6e1eb2f4894af7ee58bcbc53, type: 2}
+  - prefabKnight: {fileID: 5913012297502299355, guid: 45da5e53ba70b604d9ed5afd3d9c3a6d, type: 3}
+  - prefabQueen: {fileID: 5697254461768589201, guid: 17554e415807c8a4b8d7534f002ba5d9, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

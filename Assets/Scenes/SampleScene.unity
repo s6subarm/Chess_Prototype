@@ -159,7 +159,7 @@ MonoBehaviour:
   prefabQueen: {fileID: 5697254461768589201, guid: 17554e415807c8a4b8d7534f002ba5d9, type: 3}
   pieceLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 512
   tileSize: 100
 --- !u!4 &68684634
 Transform:

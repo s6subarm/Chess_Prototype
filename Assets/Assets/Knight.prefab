@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 3232104644424834713}
   m_Layer: 9
   m_Name: Knight
-  m_TagString: ChessPiece
+  m_TagString: Knight
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -28,7 +28,7 @@ Transform:
   m_GameObject: {fileID: 5913012297502299355}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 208.76361, y: 0, z: 326.13245}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 250000, y: 250000, z: 250000}
   m_ConstrainProportionsScale: 1
   m_Children: []
