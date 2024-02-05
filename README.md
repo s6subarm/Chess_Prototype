@@ -1,9 +1,10 @@
 # Chess_Prototype
  
-Task: 
+**Task:** 
+
 Build a chess board. When you click on one piece an then on a field, it will move there if the move is valid. I attached the fbx files for the chess pieces.
 
-Achieved:
+**Achieved:**
 
    - generating chess board
    - generating 2 chess pieces in random locations of the board
@@ -12,7 +13,7 @@ Achieved:
    - after selection clicking on a valid tile will move the chess piece
    - debugging logs
 
-Possible Improvements:
+**Possible Improvements:**
 
    - generating other chess pieces for both white and black
    - additional logic to differentiate between ally and enemy pieces
