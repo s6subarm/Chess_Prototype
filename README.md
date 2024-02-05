@@ -1,6 +1,6 @@
 # Chess_Prototype
  
-**Task:** Build a chess board. When you click on one piece an then on a field, it will move there if the move is valid. I attached the fbx files for the chess pieces.
+**Task:** Build a chess board. When you click on one piece and then on a field, it will move there if the move is valid. Achieve this for Knight and Queen chess pieces.
 
 
 **Achieved:**
