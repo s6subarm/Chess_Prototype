@@ -11,7 +11,7 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private Material highlightTileMaterial;
     [SerializeField] private GameObject prefabKnight;
     [SerializeField] private GameObject prefabQueen;
-    [SerializeField] private LayerMask pieceLayerMask;
+    //[SerializeField] private LayerMask pieceLayerMask;
     [SerializeField] private float tileSize = 100f;
 
 
@@ -23,7 +23,7 @@ public class ChessBoard : MonoBehaviour
     private Vector2Int currentHover = -Vector2Int.one;
     private Plane chessboardPlane;
     private GameObject selectedPiece = null;
-    private GameObject[,] chessPieces = new GameObject[TILE_COUNT_X, TILE_COUNT_Y];
+    private GameObject[,] chessPiecesLocations = new GameObject[TILE_COUNT_X, TILE_COUNT_Y];
     private List<Vector2Int> validMoves = new List<Vector2Int>();
 
 
@@ -54,12 +54,13 @@ public class ChessBoard : MonoBehaviour
             {
                 if (currentHover != tileIndex)
                 {
-                    // Skip highlighting if a piece is selected
+                    // highlighting hovering only when a piece is not selected
                     if (selectedPiece == null)
                     {
                         ResetHighlight(); // Reset the previous hover state only if no piece is selected
                         currentHover = tileIndex;
                         HighlightTile(currentHover); // Highlight the new tile only if no piece is selected
+
                     }
                 }
             }
@@ -83,24 +84,47 @@ public class ChessBoard : MonoBehaviour
                 GameObject clickedObject = hitInfo.collider.gameObject;
                 if (clickedObject.layer == LayerMask.NameToLayer("ChessPiece"))
                 {
+                    ResetHighlight();
+                    ResetValidMovesHighlights();
                     if (selectedPiece != clickedObject)
                     {
-                        ResetValidMovesHighlights();
                         selectedPiece = clickedObject; // Select the piece
-                        UnityEngine.Debug.Log("Selected " + selectedPiece.name);
+                        //UnityEngine.Debug.Log("Selected " + selectedPiece.name);
                         ShowValidMoves(); // This will be a method you implement to show valid moves for the selected piece
                     }
                     else
                     {
-                        ResetValidMovesHighlights();
                         selectedPiece = null; // Deselect if the same piece is clicked again
-                        UnityEngine.Debug.Log("Deselected ");
+                        //UnityEngine.Debug.Log("Deselected ");
                     }
                 }
+                
             }
-            else if (selectedPiece != null && currentHover != -Vector2Int.one)
+            else
             {
-                //MoveSelectedPiece(currentHover); // Attempt to move the selected piece to the hovered tile
+                // Attempt to move the selected piece to the valid selected tile
+                if (selectedPiece != null)
+                {
+                    Vector3 hitPoint = ray.GetPoint(enter); // Re-calculate the hitPoint for this context
+                    Vector2Int clickedTileIndex = CalculateTileFromHitPoint(hitPoint);
+                    //UnityEngine.Debug.Log("Attempted Move To: " + clickedTileIndex);
+
+                    // Check if the clicked tile is one of the highlighted valid moves.
+                    if (validMoves.Contains(clickedTileIndex))
+                    {
+                        MoveChessPiece(selectedPiece, clickedTileIndex);
+                        ResetHighlight();
+                        ResetValidMovesHighlights();
+                        selectedPiece = null; // Clear the selected piece after moving
+                    }
+                    else
+                    {
+                        // Clicked outside a valid move, just deselect
+                        ResetHighlight();
+                        ResetValidMovesHighlights();
+                        selectedPiece = null;
+                    }
+                }
             }
         }
     }
@@ -157,9 +181,17 @@ public class ChessBoard : MonoBehaviour
     /*
     // Basic multi-purpose fuctions 
     */
+
+    private Vector2Int CalculateTileFromHitPoint(Vector3 hitPoint)
+    {
+        int x = Mathf.FloorToInt(hitPoint.x / tileSize);
+        int y = Mathf.FloorToInt(hitPoint.z / tileSize); // Use z-coordinate because of Unity's 3D space conventions
+        return new Vector2Int(x, y);
+    }
+
     private bool IsTileOccupied(Vector2Int position)
     {
-        return chessPieces[position.x, position.y] != null;
+        return chessPiecesLocations[position.x, position.y] != null;
     }
 
     private Vector3 GetTileCenter(int x, int y)
@@ -176,7 +208,7 @@ public class ChessBoard : MonoBehaviour
         Quaternion rotation = Quaternion.Euler(-90, 0, 0);
 
         GameObject newPiece = Instantiate(piecePrefab, position, rotation, transform); // Parent to the chessboard for a cleaner hierarchy
-        chessPieces[x, y] = newPiece; // Track the piece's position on the board
+        chessPiecesLocations[x, y] = newPiece; // Track the piece's position on the board
     }
 
     private Vector2Int GetPiecePosition(GameObject piece)
@@ -185,7 +217,7 @@ public class ChessBoard : MonoBehaviour
         {
             for (int y = 0; y < TILE_COUNT_Y; y++)
             {
-                if (chessPieces[x, y] == piece)
+                if (chessPiecesLocations[x, y] == piece)
                 {
                     return new Vector2Int(x, y);
                 }
@@ -194,19 +226,55 @@ public class ChessBoard : MonoBehaviour
         return -Vector2Int.one; // Return an invalid position if not found
     }
 
+    private void RemoveChessPiece(Vector2Int position)
+    {
+        if (position.x >= 0 && position.x < TILE_COUNT_X && position.y >= 0 && position.y < TILE_COUNT_Y)
+        {
+            GameObject pieceToRemove = chessPiecesLocations[position.x, position.y];
+            if (pieceToRemove != null)
+            {
+                Destroy(pieceToRemove); // Destroy the GameObject
+                chessPiecesLocations[position.x, position.y] = null; // Clear the reference from the array
+            }
+        }
+    }
+
+    private GameObject DeterminePiecePrefab(GameObject piece)
+    {
+        // Check the tag of the piece to determine its type
+        switch (piece.tag)
+        {
+            case "Knight":
+                return prefabKnight;
+            case "Queen":
+                return prefabQueen;
+            // Add more cases as needed for other piece types
+            default:
+                Debug.LogError("Unknown piece type: " + piece.tag);
+                return null; // Return null if the piece type is unrecognized
+        }
+    }
+
+
+    private void MoveChessPiece(GameObject piece, Vector2Int newPosition)
+    {
+        Vector2Int oldPosition = GetPiecePosition(piece);
+
+        // Calculate new position in world space and move the piece
+        Vector3 newPositionWorld = GetTileCenter(newPosition.x, newPosition.y);
+        piece.transform.position = newPositionWorld;
+
+        // Update the board state
+        chessPiecesLocations[oldPosition.x, oldPosition.y] = null;
+        chessPiecesLocations[newPosition.x, newPosition.y] = piece;
+    }
+
 
 
 
     /*
     // Highlighting tiles of the chess board
     */
-
-    private Vector2Int CalculateTileFromHitPoint(Vector3 hitPoint)
-    {
-        int x = Mathf.FloorToInt(hitPoint.x / 100f);
-        int y = Mathf.FloorToInt(hitPoint.z / 100f); // Use z-coordinate because of Unity's 3D space conventions
-        return new Vector2Int(x, y);
-    }
 
     private void HighlightTile(Vector2Int index)
     {
@@ -236,6 +304,7 @@ public class ChessBoard : MonoBehaviour
         }
         validMoves.Clear(); // Clear the list after resetting the highlights
     }
+
 
 
 
@@ -271,7 +340,7 @@ public class ChessBoard : MonoBehaviour
     private List<Vector2Int> GetValidMovesForKnight(Vector2Int position)
     {
         List<Vector2Int> moves = new List<Vector2Int>();
-        UnityEngine.Debug.Log("Knight position: " + position);
+        //UnityEngine.Debug.Log("Knight position: " + position);
 
         // Knight's potential moves in "L" shapes
         int[,] offsets = new int[,] { { 1, 2 }, { 2, 1 }, { -1, 2 }, { -2, 1 }, { -1, -2 }, { -2, -1 }, { 1, -2 }, { 2, -1 } };
@@ -283,8 +352,12 @@ public class ChessBoard : MonoBehaviour
 
             if (newX >= 0 && newX < TILE_COUNT_X && newY >= 0 && newY < TILE_COUNT_Y)
             {
-                UnityEngine.Debug.Log("Valid move for knight: (" + newX + ", " + newY + ")");
-                moves.Add(new Vector2Int(newX, newY));
+                if (!IsTileOccupied(new Vector2Int(newX, newY)))
+                {
+                    // TODO: Add additional logic to differentiate between ally and enemy pieces
+                    //UnityEngine.Debug.Log("Valid move for knight: (" + newX + ", " + newY + ")");
+                    moves.Add(new Vector2Int(newX, newY));
+                }
             }
         }
 
@@ -299,7 +372,7 @@ public class ChessBoard : MonoBehaviour
     private List<Vector2Int> GetValidMovesForQueen(Vector2Int position)
     {
         List<Vector2Int> moves = new List<Vector2Int>();
-        UnityEngine.Debug.Log("Queen position:" + position);
+        //UnityEngine.Debug.Log("Queen position:" + position);
 
         Vector2Int[] directions = new Vector2Int[] {
         new Vector2Int(1, 0), new Vector2Int(-1, 0), // Horizontal
@@ -314,12 +387,13 @@ public class ChessBoard : MonoBehaviour
 
             while (nextPosition.x >= 0 && nextPosition.x < TILE_COUNT_X && nextPosition.y >= 0 && nextPosition.y < TILE_COUNT_Y)
             {
-                if (IsTileOccupied(nextPosition))
+                if (!IsTileOccupied(nextPosition))
                 {
                     // TODO: Add additional logic to differentiate between ally and enemy pieces
-                    moves.Add(nextPosition);
-                    break; // Stop at the first occupied tile
+                    moves.Add(nextPosition);     
                 }
+                else 
+                    break; // Stop at the first occupied tile
 
                 moves.Add(nextPosition);
 
@@ -335,7 +409,7 @@ public class ChessBoard : MonoBehaviour
         {
             foreach (var move in moves)
             {
-                UnityEngine.Debug.Log("Valid move for Queen: (" + move.x + ", " + move.y + ")");
+                //UnityEngine.Debug.Log("Valid move for Queen: (" + move.x + ", " + move.y + ")");
             }
         }
 
